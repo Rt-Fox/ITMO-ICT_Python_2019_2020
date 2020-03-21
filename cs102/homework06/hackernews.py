@@ -4,7 +4,7 @@ from bottle import (
 
 from scraputils import get_news
 from db import News, Session
-from bayes import NaiveBayesClassifier
+from bayes import NaiveBayesClassifier, clean
 
 
 @route("/news")
@@ -50,9 +50,27 @@ def update_news(url="https://news.ycombinator.com/newest", n=1, k=0):
     redirect("/news")
 
 
-@route("/classify")
+@route("/recommendations")
 def classify_news():
-    pass
+    s = Session()
+    none_news = []
+    rows = s.query(News).filter(News.label == None).all()
+    learn_news = s.query(News).filter(News.label != None).all()
+    X, y = [], []
+    for news in learn_news:
+        X.append(news.title)
+        y.append(news.label)
+    X = [clean(x).lower() for x in X]
+    model = NaiveBayesClassifier(alpha=1)
+    model.fit(X, y)
+    for news in rows:
+        none_news.append(news.title)
+    predict_labels = model.predict(none_news)
+    for news, label in zip(rows, predict_labels):
+        news.label = label
+    classified_news = sorted(rows, key=lambda news: news.label)
+    return template('./classify.tpl', rows=classified_news)
+
 
 
 if __name__ == "__main__":
