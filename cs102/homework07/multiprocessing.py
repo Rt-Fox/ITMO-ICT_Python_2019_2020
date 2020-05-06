@@ -10,7 +10,6 @@ class APIHandler:
     heavy_process.start()
     resp.body = "Quick response"
 
-
 # Define some heavy function
 def my_func():
     time.sleep(10)
